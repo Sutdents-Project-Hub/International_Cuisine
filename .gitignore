@@ -1,0 +1,44 @@
+.DS_Store
+
+# Env files (do not commit secrets)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# IDE
+.idea/
+*.iml
+.trae/
+
+# Node
+**/node_modules/
+**/dist/
+**/.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Nest / Prisma
+**/coverage/
+**/.nest/
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/build/
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/**/key.properties
+
+# iOS / macOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/macos/Pods/
+**/macos/Flutter/Flutter.framework
+**/macos/Flutter/Flutter.podspec

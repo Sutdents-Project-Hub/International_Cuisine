@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ScaleStrategy {
+  LINEAR
+  CLAMPED
+  MIN_UNIT
+}
+
+enum IngredientCategory {
+  VEGETABLE
+  MEAT
+  DRY_GOODS
+  SEASONING
+  REFRIGERATED
+  OTHER
+}
+
+enum EventType {
+  VIEW
+  START
+  COMPLETE
+  FAVORITE
+}
+
+// ============================================================
+// User
+// ============================================================
+
+model User {
+  id                 String               @id @default(uuid())
+  email              String               @unique
+  passwordHash       String
+  username           String               @unique
+  avatarUrl          String?
+  location           String?
+  dietaryPreferences String[]             @default([])
+  completedCount     Int                  @default(0)
+  level              Int                  @default(1)
+  xp                 Int                  @default(0)
+  role               Role                 @default(USER)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  badges             UserBadge[]
+  favorites          Favorite[]
+  shoppingLists      ShoppingList[]
+  ratings            Rating[]
+  analyticsEvents    AnalyticsEvent[]
+  completionRecords  CompletionRecord[]
+  unlockedRecipes    UserUnlockedRecipe[]
+  authoredRecipes    Recipe[]             @relation("AuthoredRecipes")
+}
+
+// ============================================================
+// Badges & Achievements
+// ============================================================
+
+model Badge {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String
+  iconUrl     String?
+  condition   Json
+  createdAt   DateTime    @default(now())
+
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id         String   @id @default(uuid())
+  userId     String
+  badgeId    String
+  unlockedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+// ============================================================
+// Recipe
+// ============================================================
+
+model Recipe {
+  id                String             @id @default(uuid())
+  title             String
+  altTitles         String[]           @default([])
+  country           String
+  region            String?
+  city              String?
+  cuisineTags       String[]           @default([])
+  isHidden          Boolean            @default(false)
+  prepTimeMinutes   Int
+  cookTimeMinutes   Int
+  totalTimeMinutes  Int
+  difficulty        Difficulty
+  servingsBase      Int                @default(1)
+  caloriesPerServing Float?
+  culturalNote      String?
+  authorId          String?
+  viewCount         Int                @default(0)
+  completedCount    Int                @default(0)
+  likeCount         Int                @default(0)
+  ratingAvg         Float              @default(0)
+  ratingCount       Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  author            User?              @relation("AuthoredRecipes", fields: [authorId], references: [id], onDelete: SetNull)
+  ingredients       Ingredient[]
+  steps             Step[]
+  favorites         Favorite[]
+  ratings           Rating[]
+  analyticsEvents   AnalyticsEvent[]
+  completionRecords CompletionRecord[]
+  unlockConditions  UnlockCondition[]
+  unlockedBy        UserUnlockedRecipe[]
+}
+
+model Ingredient {
+  id              String             @id @default(uuid())
+  recipeId        String
+  name            String
+  qtyPerServing   Float
+  unit            String
+  optional        Boolean            @default(false)
+  notes           String?
+  gramEquivalent  Float?
+  category        IngredientCategory @default(OTHER)
+  scaleStrategy   ScaleStrategy      @default(LINEAR)
+  kcalPer100g     Float?
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model Step {
+  id                  String  @id @default(uuid())
+  recipeId            String
+  order               Int
+  description         String
+  defaultTimerSeconds Int?
+  mediaUrl            String?
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, order])
+}
+
+// ============================================================
+// Hidden Recipe Unlock
+// ============================================================
+
+model UnlockCondition {
+  id            String @id @default(uuid())
+  recipeId      String
+  conditionType String
+  conditionData Json
+  description   String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model UserUnlockedRecipe {
+  id         String   @id @default(uuid())
+  userId     String
+  recipeId   String
+  unlockedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+}
+
+// ============================================================
+// Favorites
+// ============================================================
+
+model Favorite {
+  id           String   @id @default(uuid())
+  userId       String
+  recipeId     String
+  categoryName String?
+  createdAt    DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+}
+
+// ============================================================
+// Shopping List
+// ============================================================
+
+model ShoppingList {
+  id        String         @id @default(uuid())
+  userId    String
+  title     String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ShoppingItem[]
+}
+
+model ShoppingItem {
+  id             String             @id @default(uuid())
+  shoppingListId String
+  ingredientName String
+  totalQty       Float
+  unit           String
+  category       IngredientCategory @default(OTHER)
+  checked        Boolean            @default(false)
+
+  shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// Ratings & Comments
+// ============================================================
+
+model Rating {
+  id        String   @id @default(uuid())
+  userId    String
+  recipeId  String
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+}
+
+// ============================================================
+// Analytics
+// ============================================================
+
+model AnalyticsEvent {
+  id        String    @id @default(uuid())
+  userId    String?
+  recipeId  String?
+  eventType EventType
+  meta      Json?
+  timestamp DateTime  @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recipe Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+}
+
+// ============================================================
+// Completion Records
+// ============================================================
+
+model CompletionRecord {
+  id          String   @id @default(uuid())
+  userId      String
+  recipeId    String
+  completedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
