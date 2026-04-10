@@ -1,99 +1,106 @@
-# International Cuisine Frontend (Flutter)
+# International Cuisine Frontend（Flutter）
 
-本目錄是 International Cuisine 的 Flutter 前端，支援 iOS / Android / 桌面與 Web。後端 API 預設使用 `http://localhost:3000`（Android 模擬器預設 `http://10.0.2.2:3000`）。
+## 模組簡介
 
-## 需求
+本目錄為 International Cuisine 的 Flutter 前端，支援 iOS / Android / 桌面與 Web。預設連線後端 `http://localhost:3000`，可用 build-time 參數覆蓋。
 
-- Flutter SDK（建議 stable）
-- 後端 API（NestJS + Postgre），可用根目錄的 docker compose 一鍵啟動
+## 使用技術
 
-## 快速開始（搭配根目錄 docker compose）
+- Flutter / Dart
+- HTTP：Dio
+- 狀態管理：Provider
+- API Client：OpenAPI 產生（`packages/api_client`）
+- Web：Nginx（Docker image 提供靜態檔案）
 
-1. 在專案根目錄複製環境檔
+## 資料夾結構
+
+```text
+international_cuisine_app/
+├─ lib/                      # App 主程式
+├─ assets/                   # 靜態資源
+├─ packages/api_client/      # 後端 OpenAPI 產生的 Dart Client
+├─ android/                  # Android 專案
+├─ ios/                      # iOS 專案
+├─ web/                      # Flutter Web 設定
+├─ Dockerfile                # Flutter Web Docker build（給 Coolify）
+└─ nginx.conf                # Nginx 設定（Web 部署）
+```
+
+## 本地開發流程
+
+1. 啟動後端（建議用根目錄一鍵）
 
 ```bash
 cp .env.example .env
-```
-
-2. 啟動後端與資料庫
-
-```bash
 docker compose up -d
 ```
 
-3. 啟動 Flutter（行動端/桌面）
+2. 安裝依賴並啟動 App
 
 ```bash
+cd international_cuisine_app
 flutter pub get
 flutter run
 ```
 
-## API Base URL 設定
+## 環境變數
 
-`lib/core/api/api_config.dart` 支援 build-time 覆蓋：
+前端不使用 `.env`，以 build-time 參數設定 API：
 
-- 通用
+- `API_BASE_URL`：`--dart-define=API_BASE_URL=...`
+
+預設值邏輯請見 `lib/core/api/api_config.dart`。
+
+## 建置 / 啟動方式
+
+### 行動端 / 桌面（開發）
+
+```bash
+flutter run
+```
+
+### 指定 API Base URL
+
+- 通用（本機）
 
 ```bash
 flutter run --dart-define=API_BASE_URL=http://localhost:3000
 ```
 
-- Android 模擬器（若後端跑在本機）
+- Android 模擬器（後端跑在同一台電腦）
 
 ```bash
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
 ```
 
-未提供 `API_BASE_URL` 時，會依平台使用預設值。
-
-## Flutter Web（本地或 Coolify）
-
-### 本地跑 Web（非 Docker）
+### Web（本地開發，非 Docker）
 
 ```bash
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000
 ```
 
-### 用 Docker 建置並提供 Web（給 Coolify 用）
+### Web（Docker 建置與啟動）
 
 ```bash
 docker build -t cuisine-web --build-arg API_BASE_URL=https://your-api-domain.example .
 docker run --rm -p 8080:80 cuisine-web
 ```
 
-## api_client（OpenAPI 產生）
+## 部署細節
 
-`packages/api_client` 是從後端 OpenAPI 規格產生的 Dart Dio Client。若後端 `swagger.json` 有更新，建議重新產生並同步到此 package（詳細流程請見根目錄或後端 README）。
+### Coolify（Flutter Web）
 
-## 上架（App Store / Play 商店）
+- App 類型：Dockerfile
+- Root / Directory：`international_cuisine_app`
+- Build args：
+  - `API_BASE_URL=https://your-api-domain.example`
 
-### 共通
+## 常見問題
 
-- 請使用 HTTPS 的 `API_BASE_URL` 進行上架版本建置
-- App 的版本號來自 `pubspec.yaml` 的 `version: x.y.z+buildNumber`
+### Android 模擬器連不到本機後端
 
-### Android（Play 商店）
+- 將 `API_BASE_URL` 設為 `http://10.0.2.2:3000`
 
-1. 建立上架 keystore（建議使用 Upload Key）
-2. 在 `android/` 建立 `key.properties`（可參考 `android/key.properties.example`）
-3. 產出 AAB
+### Web 呼叫 API 被擋（CORS）
 
-```bash
-flutter build appbundle --release --dart-define=API_BASE_URL=https://your-api-domain.example
-```
-
-備註：`applicationId` 已設定為 `com.felix0901.internationalcuisine`。Play 商店第一次上架後不可再更改 package name。
-
-### iOS（App Store）
-
-1. 使用 Xcode 開啟 `ios/Runner.xcworkspace`
-2. 設定 Signing（建議 Automatic Signing）與 Team
-3. Archive 後透過 Organizer 上傳
-
-若只想在 CI 驗證編譯（不簽名）：
-
-```bash
-flutter build ios --release --no-codesign --dart-define=API_BASE_URL=https://your-api-domain.example
-```
-
-備註：Bundle ID 已設定為 `com.felix0901.internationalcuisine`，且已移除 `NSAllowsArbitraryLoads`，只保留 `localhost` 的 HTTP 例外以利本機開發。
+- 確認後端 `CORS_ORIGINS` 包含你的前端網域（多個以逗號分隔）

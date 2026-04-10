@@ -1,52 +1,36 @@
-# International Cuisine Backend (NestJS + Prisma)
+# International Cuisine Backend（NestJS + Prisma）
 
-本目錄是 International Cuisine 的後端 API，使用 NestJS + Prisma，資料庫使用 PostgreSQL。預設 API 前綴為 `/api/v1`，Swagger（非 production）位於 `/docs`。
+## 模組簡介
 
-## 需求
+本目錄為 International Cuisine 的後端 API，使用 NestJS + Prisma，資料庫為 PostgreSQL。
 
-- Node.js（建議 20+）
-- PostgreSQL（或使用根目錄 docker compose）
+- API 前綴：`/api/v1`
+- Health：`/api/v1/health`
+- Swagger：僅在非 `NODE_ENV=production` 時提供 `GET /docs`
 
-## 環境變數
+## 使用技術
 
-請參考 `.env.example`，常用項目如下：
+- NestJS
+- Prisma
+- PostgreSQL
+- Swagger（僅非 production）
+- Helmet（安全性 HTTP header）
 
-- `DATABASE_URL`（必填）
-- `JWT_SECRET`（必填）
-- `NODE_ENV`（production 時會關閉 Swagger，並要求 `CORS_ORIGINS`）
-- `CORS_ORIGINS`（production 必填，逗號分隔）
-- `HOST`、`PORT`
-- `RUN_SEED`（entrypoint 用；`true` 時會執行 `prisma db seed`）
-- `SEED_ADMIN_EMAIL`、`SEED_ADMIN_USERNAME`、`SEED_ADMIN_PASSWORD`（有提供才建立/更新管理員）
+## 資料夾結構
 
-## 本機開發（不用 Docker）
-
-1. 安裝依賴
-
-```bash
-npm ci
+```text
+international_cuisine_backend/
+├─ src/                # NestJS source code
+├─ prisma/             # Prisma schema / migrations / seed
+├─ docker/             # 容器啟動腳本（migrate/seed）
+├─ Dockerfile          # Coolify/容器部署用
+├─ package.json        # npm scripts
+└─ .env.example        # 本機開發範例環境檔
 ```
 
-2. 準備 `.env`
+## 本地開發流程
 
-```bash
-cp .env.example .env
-```
-
-3. Migration（需要 Postgre 已可連線）
-
-```bash
-npm run prisma:migrate:deploy
-npm run prisma:seed
-```
-
-4. 啟動
-
-```bash
-npm run start:dev
-```
-
-## 用 Docker（建議使用根目錄 compose）
+### 方式 A：用根目錄 Docker Compose（推薦）
 
 在專案根目錄：
 
@@ -59,31 +43,80 @@ docker compose up -d
 
 - API：`http://localhost:3000/api/v1`
 - Health：`http://localhost:3000/api/v1/health`
-- Swagger（非 production）：`http://localhost:3000/docs`
+- Swagger（僅非 production）：`http://localhost:3000/docs`
 
-## Prisma Seed
+### 方式 B：不用 Docker（本機 Node + 本機/遠端 Postgres）
 
-Seed 腳本位於 `prisma/seed.js`：
+1. 安裝依賴
 
-- 若資料庫已存在 recipes/badges，seed 會跳過避免重複建立
-- 只有在 `SEED_ADMIN_EMAIL`、`SEED_ADMIN_USERNAME`、`SEED_ADMIN_PASSWORD` 都有提供時，才會建立/更新管理員（role: ADMIN）
+```bash
+npm ci
+```
 
-## 測試與品質
+2. 準備環境檔
+
+```bash
+cp .env.example .env
+```
+
+3. Migration / Seed（需 `DATABASE_URL` 指向可連線的 Postgres）
+
+```bash
+npm run prisma:migrate:deploy
+npm run prisma:seed
+```
+
+4. 啟動
+
+```bash
+npm run start:dev
+```
+
+## 環境變數
+
+請參考 `.env.example`，常用項目如下：
+
+- 必填：`DATABASE_URL`、`JWT_SECRET`
+- 執行模式：`NODE_ENV`（`production` 會關閉 Swagger）
+- CORS：`CORS_ORIGINS`（多個以逗號分隔；若未提供且非 production，後端會啟用寬鬆 CORS 以利開發）
+- 監聽：`HOST`、`PORT`
+
+## 建置 / 啟動方式
 
 ```bash
 npm run build
-npm test
+npm run start:prod
 ```
 
-## Coolify 部署建議（Backend）
+## 部署細節
 
-建議在 Coolify：
+### Docker 行為
 
-1. 建立一個 PostgreSQL 服務（Coolify 管理）
-2. 建立一個 Dockerfile App 指向本目錄（使用 `Dockerfile`）
-3. 設定環境變數：
-   - `DATABASE_URL` 指向 Coolify 的 Postgre
-   - `JWT_SECRET` 使用長隨機字串
-   - `NODE_ENV=production`
-   - `CORS_ORIGINS` 設為你的 Web 網域（可多個，用逗號分隔）
+容器啟動時會：
 
+- 若存在 migrations，執行 `prisma migrate deploy`；否則執行 `prisma db push`
+- `RUN_SEED=true` 時執行 `prisma db seed`
+
+### Coolify
+
+- App 類型：Dockerfile
+- Root / Directory：`international_cuisine_backend`
+- Port：`3000`
+- 必要環境變數：
+  - `DATABASE_URL`
+  - `JWT_SECRET`
+  - `NODE_ENV=production`
+  - `CORS_ORIGINS`（逗號分隔，至少包含你的 Web 網域）
+- 可選環境變數：
+  - `RUN_SEED=true`
+  - `SEED_ADMIN_EMAIL`、`SEED_ADMIN_USERNAME`、`SEED_ADMIN_PASSWORD`（三者皆提供才會建立/更新管理員）
+
+## 常見問題
+
+### Swagger 看不到
+
+- 確認 `NODE_ENV` 不是 `production`，Swagger 才會掛載在 `/docs`
+
+### Web 呼叫 API 被擋（CORS）
+
+- 設定 `CORS_ORIGINS`（多個以逗號分隔），並包含你的前端網域
