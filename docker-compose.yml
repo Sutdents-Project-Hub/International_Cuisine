@@ -17,7 +17,7 @@ services:
 
   backend:
     build:
-      context: ./international_cuisine_backend
+      context: ./backend
       dockerfile: Dockerfile
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -35,6 +35,17 @@ services:
         condition: service_healthy
     ports:
       - "3000:3000"
+
+  frontend:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
 
 volumes:
   postgres_data:

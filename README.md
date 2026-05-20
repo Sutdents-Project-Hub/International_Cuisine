@@ -11,7 +11,7 @@ International Cuisine
 - 前端：Flutter（行動端 + 桌面 + Web）
 - 後端：NestJS（REST API，API 前綴 `/api/v1`）
 - 資料庫：PostgreSQL
-- API Client：由後端 OpenAPI 規格產生的 Dart Dio Client（位於前端 `international_cuisine_app/packages/api_client`）
+- API Client：由後端 OpenAPI 規格產生的 Dart Dio Client（位於前端 `app/packages/api_client`）
 
 ## 功能列表
 
@@ -27,16 +27,16 @@ International Cuisine
 - 前端：Flutter + Dart（HTTP：Dio；狀態管理：Provider）
 - 後端：NestJS + Prisma（驗證：class-validator；安全：helmet；Swagger 僅非 production）
 - 資料庫：PostgreSQL
-- 本地整合：`docker-compose.yml` 一鍵啟動 DB + Backend
-- Web 部署：Flutter Web 建置後由 Nginx 提供靜態檔案（見 `international_cuisine_app/Dockerfile` 與 `nginx.conf`）
+- 本地整合：`docker-compose.yml` 一鍵啟動 DB + Backend + Flutter Web
+- Web 部署：Flutter Web 建置後由 Nginx 提供靜態檔案（見 `app/Dockerfile` 與 `nginx.conf`）
 
 ## 專案結構
 
 ```text
 .
-├─ international_cuisine_app/          # Flutter App / Flutter Web
-├─ international_cuisine_backend/      # NestJS + Prisma 後端
-├─ docker-compose.yml                  # 本地：PostgreSQL + Backend
+├─ app/                                # Flutter App / Flutter Web
+├─ backend/                            # NestJS + Prisma 後端
+├─ docker-compose.yml                  # 本地/Coolify：PostgreSQL + Backend + Flutter Web
 └─ .env.example                        # 本地 compose 範例環境檔
 ```
 
@@ -49,13 +49,14 @@ cp .env.example .env
 docker compose up -d
 ```
 
+- Web：`http://localhost:8080`
 - Health：`http://localhost:3000/api/v1/health`
 - Swagger（僅非 production）：`http://localhost:3000/docs`
 
 ### 2) 後端（lint / unit test）
 
 ```bash
-cd international_cuisine_backend
+cd backend
 npm ci
 npm run lint
 npm test
@@ -64,7 +65,7 @@ npm test
 ### 3) 前端（Flutter 測試）
 
 ```bash
-cd international_cuisine_app
+cd app
 flutter pub get
 flutter test
 ```
@@ -76,12 +77,13 @@ flutter test
 請以 `.env.example` 為基準建立 `.env`：
 
 - Postgres：`POSTGRES_USER`、`POSTGRES_PASSWORD`、`POSTGRES_DB`
-- Backend：`JWT_SECRET`、`CORS_ORIGINS`
+- Backend：`JWT_SECRET`、`NODE_ENV`、`CORS_ORIGINS`
+- Frontend Web build：`API_BASE_URL`
 - Seed（啟動時自動灌資料）：`RUN_SEED`、`SEED_ADMIN_EMAIL`、`SEED_ADMIN_USERNAME`、`SEED_ADMIN_PASSWORD`
 
 ### 後端（本機不用 Docker）
 
-後端目錄 `international_cuisine_backend/.env.example` 提供本機啟動用的範例：
+後端目錄 `backend/.env.example` 提供本機啟動用的範例：
 
 - `DATABASE_URL`（必填）
 - `JWT_SECRET`（必填）
@@ -97,7 +99,14 @@ flutter test
 
 ## Coolify 部署教學
 
-建議採「分開部署」：
+可用根目錄 `docker-compose.yml` 作為單一 Stack 部署：
+
+- Compose file：`docker-compose.yml`
+- 需要在 Coolify 設定 `.env.example` 中列出的環境變數
+- `API_BASE_URL` 必須設定為後端對外網址，例如 `https://api.example.com`
+- `CORS_ORIGINS` 必須包含前端對外網址，例如 `https://app.example.com`
+
+也可以採「分開部署」：
 
 ### PostgreSQL
 
@@ -107,7 +116,7 @@ flutter test
 ### Backend（NestJS）
 
 - App 類型：Dockerfile
-- Root / Directory：`international_cuisine_backend`
+- Root / Directory：`backend`
 - Port：`3000`
 - 必要環境變數：
   - `DATABASE_URL`
@@ -121,11 +130,11 @@ flutter test
 ### Frontend Web（Flutter Web）
 
 - App 類型：Dockerfile
-- Root / Directory：`international_cuisine_app`
+- Root / Directory：`app`
 - Build args：
   - `API_BASE_URL=https://your-api-domain.example`
 
 ## 前端 / 後端詳細文件連結
 
-- 前端：[`international_cuisine_app/README.md`](international_cuisine_app/README.md)
-- 後端：[`international_cuisine_backend/README.md`](international_cuisine_backend/README.md)
+- 前端：[`app/README.md`](app/README.md)
+- 後端：[`backend/README.md`](backend/README.md)

@@ -19,7 +19,7 @@
 ## 資料夾結構
 
 ```text
-international_cuisine_backend/
+backend/
 ├─ src/                # NestJS source code
 ├─ prisma/             # Prisma schema / migrations / seed
 ├─ docker/             # 容器啟動腳本（migrate/seed）
@@ -100,7 +100,7 @@ npm run start:prod
 ### Coolify
 
 - App 類型：Dockerfile
-- Root / Directory：`international_cuisine_backend`
+- Root / Directory：`backend`
 - Port：`3000`
 - 必要環境變數：
   - `DATABASE_URL`

@@ -15,7 +15,7 @@
 ## 資料夾結構
 
 ```text
-international_cuisine_app/
+app/
 ├─ lib/                      # App 主程式
 ├─ assets/                   # 靜態資源
 ├─ packages/api_client/      # 後端 OpenAPI 產生的 Dart Client
@@ -38,7 +38,7 @@ docker compose up -d
 2. 安裝依賴並啟動 App
 
 ```bash
-cd international_cuisine_app
+cd app
 flutter pub get
 flutter run
 ```
@@ -91,7 +91,7 @@ docker run --rm -p 8080:80 cuisine-web
 ### Coolify（Flutter Web）
 
 - App 類型：Dockerfile
-- Root / Directory：`international_cuisine_app`
+- Root / Directory：`app`
 - Build args：
   - `API_BASE_URL=https://your-api-domain.example`
 
